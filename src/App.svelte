@@ -1,30 +1,75 @@
 <script lang="ts">
-	export let name: string;
+	import Router, { location, push } from "svelte-spa-router";
+	import { wrap } from "svelte-spa-router/wrap";
+	import Switch from './components/switch.svelte';
+	let screenReader = false;
+
+	//Impoort routes
+	import Home from "./routes/home.svelte";
+	push("/home"); // Go home
 </script>
 
 <main>
-	<h1>Hello {name}!</h1>
-	<p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
+	<div class="navbar">
+		<div class="left">
+			<Switch bind:checked={screenReader}></Switch>
+			<span>Screen Reader</span>
+		</div>
+
+		<div class="right">
+			<span>Bruno Silva</span>
+			<img src="assets/user.png" alt="User">
+		</div>
+	</div>
+
+	<div class="content">
+		<Router
+			routes={{
+				"/home": wrap({
+					component: Home
+				})
+			}}
+		/>
+	</div>	
 </main>
 
 <style>
+	.navbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin: 0px 30px;
+		padding-top: 20px;
+	}
+
+	.left {
+		display: flex;
+		align-items: center;
+	}
+
+	.left span {
+		margin-left: 20px;
+	}
+
+	.right {
+		display: flex;
+		align-items: center;
+	}
+
+	.right img {
+		margin-left: 20px;
+		width: 45px;
+	}
+
 	main {
-		text-align: center;
-		padding: 1em;
-		max-width: 240px;
-		margin: 0 auto;
+        height: 100%;
+        background-color: #F9F9F9;
+		display: flex;
+		flex-direction: column;
 	}
 
-	h1 {
-		color: #ff3e00;
-		text-transform: uppercase;
-		font-size: 4em;
-		font-weight: 100;
-	}
-
-	@media (min-width: 640px) {
-		main {
-			max-width: none;
-		}
+	.content{
+		height: 100%;
+		flex: 1;
 	}
 </style>
