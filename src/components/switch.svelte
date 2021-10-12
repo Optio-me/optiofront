@@ -7,7 +7,6 @@
     <span class="slider" />
 </label>
 
-
 <style>
     /* Re-write this */
     .switch {

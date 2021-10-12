@@ -5,6 +5,7 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import sveltePreprocess from 'svelte-preprocess';
 import typescript from '@rollup/plugin-typescript';
+import replace from "@rollup/plugin-replace";
 import css from 'rollup-plugin-css-only';
 
 const production = !process.env.ROLLUP_WATCH;
@@ -32,13 +33,34 @@ function serve() {
 
 export default {
 	input: 'src/main.ts',
+	inlineDynamicImports : true,
 	output: {
 		sourcemap: true,
 		format: 'iife',
 		name: 'app',
 		file: 'public/build/bundle.js'
 	},
+	moduleContext: (id) => {
+		// In order to match native module behaviour, Rollup sets `this`
+		// as `undefined` at the top level of modules. Rollup also outputs
+		// a warning if a module tries to access `this` at the top level.
+		// The following modules use `this` at the top level and expect it
+		// to be the global `window` object, so we tell Rollup to set
+		// `this = window` for these modules.
+		const thisAsWindowForModules = [
+		  'node_modules/@ionic-native/in-app-browser/index.js'
+		];
+	  
+		if (thisAsWindowForModules.some(id_ => id.trimRight().endsWith(id_))) {
+		  return 'window';
+		}
+	},
 	plugins: [
+		replace({
+			'preventAssignment': true,
+			'process.env.BACK_ADDR' : JSON.stringify("192.168.0.106"),
+			'process.env.NODE_ENV': JSON.stringify( 'production' )
+		}),
 		svelte({
 			preprocess: sveltePreprocess({ sourceMap: !production }),
 			compilerOptions: {

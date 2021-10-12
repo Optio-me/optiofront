@@ -1,4 +1,7 @@
 <script>
+    import Search from "../components/search_bar.svelte";
+    import Tile from "../components/tile.svelte";
+
     let tiles = [
         { icon: "assets/phone.png", name: "Set-up Phone" },
         { icon: "assets/map.png", name: "Access Map" },
@@ -10,24 +13,15 @@
 </script>
 
 <main>
-    <img src="assets/logo.svg" alt="Optio.me Logo" />
+    <img class="logo" src="assets/logo.svg" alt="Optio.me Logo" />
 
-    <div class="search">
-        <span class="material-icons">search</span>
-        <input
-            placeholder="Search me..."
-            type="text"
-            id="search_box"
-            name="Search Box"
-        /><br />
+    <div class="bar">
+        <Search />
     </div>
 
     <div class="tiles">
-        {#each tiles as tile}
-            <div class="tile">
-                <img src={tile.icon} alt={tile.name} />
-                <div>{tile.name}</div>
-            </div>
+        {#each tiles as tile, id}
+            <Tile {tile} index={id} />
         {/each}
     </div>
 </main>
@@ -41,48 +35,47 @@
         height: 100%;
     }
 
-    .search {
-        width: 100%;
-        display: flex;
-        max-width: 700px;
-        margin: 90px 0px;
-        padding: 10px;
-
-        border: 2px solid #6b6b6b;
-        box-sizing: border-box;
-        border-radius: 10px;
-
-        background-color: white;
-    }
-
-    .tile {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        width: 110px;
-        height: 110px;
-
-        padding: 20px;
-        background: #ffffff;
-        border: 2px solid #dadada;
-        box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-        border-radius: 20px;
-    }
-
-    .tile img {
-        width: 60px;
-        margin-bottom: 20px;
-    }
-
     .tiles {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         grid-gap: 3rem;
     }
 
-    input {
-        width: inherit;
-        margin-left: 10px;
+    .bar {
+        width: 100%;
+        margin: 90px 0px;
+        max-width: 700px;
+    }
+
+    @media only screen and (max-width: 700px) {
+        .bar {
+            max-width: 80%;
+            margin-bottom: 80px;
+        }
+
+        .tiles {
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 4rem;
+        }
+
+        .logo {
+            width: 300px;
+            margin-top: 120px;
+        }
+    }
+
+    @media only screen and (max-width: 500px) {
+        .bar {
+            margin-bottom: 50px;
+        }
+
+        .tiles {
+            grid-gap: 1rem;
+        }
+
+        .logo {
+            width: 200px;
+            margin-top: 170px;
+        }
     }
 </style>
