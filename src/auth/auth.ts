@@ -1,12 +1,13 @@
 import { Storage } from '@capacitor/storage';
 import {push} from 'svelte-spa-router';
-import { parse } from "qs";
+import { parse } from "qs"; // Replace
+import UrlParser from 'query-string';
 import { InAppBrowser } from '@ionic-native/in-app-browser';
 import { Http } from '@capacitor-community/http';
 
 import * as cases from './cases';
 
-const CODE_CHALLENGE = "xRDlybMmG7moo-9Ii6L2lipzIIEHfA4SWr54wLN0JQs";
+const CODE_CHALLENGE = "k6xriiZ2GyIH9Dq-t490XLFlDCp0Qp54ZIDDELV45xw";
 
 //shape of session
 interface Session {
@@ -18,11 +19,14 @@ interface Session {
 
 export const login = async () => {
 	//launches browser or redirect in web
-	const b = await InAppBrowser.create(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=6b45745d-2213-4238-a435-9e8e06e0b974&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3a5000%2F&response_mode=query&scope=https%3A%2F%2Fgraph.microsoft.com%2Fuser.read&code_challenge=${CODE_CHALLENGE}&code_challenge_method=S256`, '_self', 'clearcache=yes,clearsessioncache=yes')
+
+	//client id
+	// d06c06bc-abf7-4abd-84c0-a21a36b3828f
+	const b = await InAppBrowser.create(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=d06c06bc-abf7-4abd-84c0-a21a36b3828f&response_type=code&redirect_uri=https%3A%2F%2Fwww.dimensions-uk.me%2F&response_mode=query&scope=https%3A%2F%2Fgraph.microsoft.com%2Fuser.read&code_challenge=${CODE_CHALLENGE}&code_challenge_method=S256`, '_self', 'clearcache=yes,clearsessioncache=yes')
 
 	//native only
 	b.on('loadstart').subscribe(async event => {
-		let parsed = parse(event.url);
+		let parsed = UrlParser.parseUrl(event.url);
 		if (parsed.query.code) {
 			console.log("VALID:", parsed.query.code)
 			let validated = await validateToken(parsed.query);
@@ -43,7 +47,7 @@ export const validateToken = async (args: any) => {
 	let config = {
 		method: 'POST',
 		headers: {'Content-Type': 'application/json'},
-		url: `http://${process.env.BACK_ADDR}:4000/`,
+		url: `${process.env.BACK_ADDR}`,
 		data: {
 			query: "mutation authenticate($code: String) { authenticate(code: $code) }",
 			variables: {
@@ -77,7 +81,7 @@ export const session = async () => {
 	let config = {
 		method: "POST",
 		headers: {"Authorization" : token, "Content-Type": 'application/json'},
-		url: `http://${process.env.BACK_ADDR}:4000/`,
+		url: `${process.env.BACK_ADDR}`,
 		data: {
 			query: `mutation { session { displayName, givenName, id, userPrincipalName } }`
 		}
@@ -100,9 +104,9 @@ export const session = async () => {
 			let req = {
 				method: 'POST',
 				headers: {"Authorization" : token, 'Content-Type': 'application/json'},
-				url: `http://${process.env.BACK_ADDR}:4000/`,
+				url: `${process.env.BACK_ADDR}`,
 				data: {
-					query: "query ($id: String!){ getUser(id: $id){ info{ displayName, id }, admin, saved } }",
+					query: "query ($id: String!){ getUser(id: $id){ info{ displayName, id, userPrincipalName }, admin, saved } }",
 					variables: {
 						id: session.data.data.session.id,
 					}

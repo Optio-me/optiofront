@@ -36,6 +36,7 @@ export default {
 	inlineDynamicImports : true,
 	output: {
 		sourcemap: true,
+		//sourcemap: !production,
 		format: 'iife',
 		name: 'app',
 		file: 'public/build/bundle.js'
@@ -58,8 +59,9 @@ export default {
 	plugins: [
 		replace({
 			'preventAssignment': true,
-			'process.env.BACK_ADDR' : JSON.stringify("192.168.0.106"),
-			'process.env.NODE_ENV': JSON.stringify( 'production' )
+			'process.env.BACK_ADDR' : JSON.stringify("https://www.dimensions-uk.me/actix"),
+			'process.env.NODE_ENV': JSON.stringify( 'production' ),
+			'bucket': JSON.stringify('https://d38fawr2ogy4vy.cloudfront.net/')
 		}),
 		svelte({
 			preprocess: sveltePreprocess({ sourceMap: !production }),

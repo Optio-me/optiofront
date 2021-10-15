@@ -1,43 +1,65 @@
 <script>
-    import { querystring } from "svelte-spa-router";
+    import { push, querystring } from "svelte-spa-router";
     import { parse } from "qs";
+    import { fade } from "svelte/transition";
 
     let results = [
         { id: 1, icon: "assets/meet.png", name: "Setup and use Google Meet" },
-        { id: 2, icon: "assets/calendar.png", name: "Schedule Google Meet video" },
+        {
+            id: 2,
+            icon: "assets/calendar.png",
+            name: "Schedule Google Meet video",
+        },
     ];
 
-    let parsed = parse($querystring);
-    let request = parsed && "request" in parsed ? parsed.request : "";
+    let parsed;
+    let request;
+    let filtered;
 
-    results = results.filter(function (result) {
-        return result.name.toLowerCase().includes(request)});
+    $: {
+        parsed = parse($querystring);
+        request = parsed && "request" in parsed ? parsed.request : "";
+
+        filtered = results.filter(function (result) {
+            return result.name.toLowerCase().includes(request);
+        });
+    }
 </script>
 
-<main  style="{!results.length && `height: 100%`}">
-    <div class="wrapper" style="{!results.length && `display: flex; flex: 1`}">
-
-        {#if results.length}
+<main in:fade={{ duration: 300 }} style={!filtered.length && `height: 100%`}>
+    <div class="wrapper" style={!filtered.length && `display: flex; flex: 1`}>
+        {#if filtered.length}
             <div class="header flex">
                 <span class="material-icons">search</span>
                 <span>Results</span>
             </div>
         {/if}
 
-        <div class="list" style="{!results.length && `flex: 1; align-self: center`}">
-            {#if results.length}
-                {#each results as result}
-                    <div class="result flex">
-                        <img src={result.icon} alt={result.name} />
-                        <span>{result.name}</span>
+        <div
+            class="list"
+            style={!filtered.length && `flex: 1; align-self: center`}
+        >
+            {#if filtered.length && request}
+                {#each filtered as result}
+                    <div
+                        on:click={() => push("/article/" + result.id)}
+                        class="result flex"
+                    >
+                        <div class="flex">
+                            <img src={result.icon} alt={result.name} />
+                            <h2>{result.name}</h2>
+                        </div>
+                        <span class="material-icons pin">push_pin</span>
                     </div>
                 {/each}
             {:else}
                 <div class="none">
                     <h1>Sorry! No results found</h1>
-                    <img src="assets/hand.png" alt="Hand"/>
-                    <h2>Were you looking for these?<h2>
-                </div>   
+                    <img src="assets/hand.png" alt="Hand" />
+                    <h2>
+                        Try searching again!
+                    </h2>
+                </div>
             {/if}
         </div>
     </div>
@@ -66,18 +88,31 @@
     .result {
         background-color: #f3f3f3;
         border-radius: 20px;
-        padding: 15px 20px;
+        padding: 15px 30px 15px 20px;
         margin-bottom: 40px;
         box-shadow: 0px 0px 9px rgba(0, 0, 0, 0.17);
+        display: flex;
+        justify-content: space-between;
     }
 
     .result img {
-        max-width: 90px;
+        max-width: 80px;
     }
 
-    .result span {
+    .result h2 {
         margin-left: 40px;
         font-size: 20px;
+        font-weight: 400;
+    }
+
+    .pin {
+        margin: 0;
+        padding: 14px;
+        font-size: 30px;
+        color: #727272;
+        border: 3px solid #acacac;
+        box-sizing: border-box;
+        border-radius: 11px;
     }
 
     .none {

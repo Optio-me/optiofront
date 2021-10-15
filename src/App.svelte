@@ -1,7 +1,8 @@
 <script lang="ts">
-	import Router, { push, querystring } from "svelte-spa-router";
+	import Router, { location, push, querystring } from "svelte-spa-router";
 	import { wrap } from "svelte-spa-router/wrap";
 	import { parse } from "qs";
+	import UrlParser from 'query-string';
 
 	//Import Components
 	import Bar from './components/search_bar.svelte';
@@ -12,6 +13,8 @@
 	import Search from "./routes/search.svelte";
 	import Article from "./routes/article.svelte";
 	import Login from './routes/login.svelte';
+	import Settings from './routes/settings.svelte';
+	import ErrorPage from "./routes/error.svelte";
 
 	//Import Apollo
 	import {
@@ -25,9 +28,86 @@
 	import { setContext } from "@apollo/client/link/context";
 	import { setClient } from "svelte-apollo";
 
+	//Import Auth
+	import {
+		logout,
+		protectAuth,
+		protectLogin,
+		validateToken,
+	} from "./auth/auth";
+
+	import { Storage } from "@capacitor/storage";
+
 	let screenReader = false;
 	let route = "/login";
 	let request = "";
+	let user = null;
+	let image;
+
+	const authLink = setContext(async (_, { headers }) => {
+		const token = await Storage.get({ key: "access_token" });
+		
+		return {
+			headers: {
+				...headers,
+				Authorization: token ? token.value : "",
+			},
+		};
+	});
+
+	const errorLink = onError(
+		({ graphQLErrors, response }) => {
+			if (graphQLErrors) {
+				for (let err of graphQLErrors) {
+					if (err.path[0] == "articleSearch") {
+						return (response.errors = null);
+					}
+				}
+			}
+		}
+	);
+
+	const additiveLink = from([
+		errorLink,
+		authLink,
+		ApolloLink.from([
+			new HttpLink({
+				uri: `${process.env.BACK_ADDR}/graphql`,
+				credentials: "same-origin",
+				fetchOptions: {
+					mode: "cors",
+				},
+			}),
+		]),
+	]);
+
+	const client = new ApolloClient(<any>{
+		link: additiveLink,
+		cache: new InMemoryCache(),
+	});
+
+	setClient(client);
+	location.subscribe((route: string) => {
+		if (route == "/") {
+			let qs = "?" + window.location.href.split("?")[1];
+			let obj = UrlParser.parse(qs);
+			if (obj.code) {
+				validateToken(obj).then((res) => {
+					window.location.href = "/#/home";
+				});
+			} else {
+				push("/home");
+			}
+		}
+	});
+
+	const conditionsFailed = (event) => {
+		if (event.detail.location == "/login") {
+			push("/home");
+		} else {
+			push("/login");
+		}
+	};
 
 	function routeLoading(event) {
 		route = event.detail.route;
@@ -35,16 +115,42 @@
 		request = parsed && "request" in parsed ? parsed.request : "";
 	}
 
-	push("/login"); // Go home
+	const getUser = async () => {
+		const session = await Storage.get({ key: "session" });
+		const token = await Storage.get({ key: "access_token" });
+		
+		let customUser = JSON.parse(session.value);
+		user = customUser;
+
+		await fetch("https://graph.microsoft.com/beta/me/photo/$value", {
+			method: "GET",
+			headers: {
+				Authorization: "Bearer " + token.value,
+			},
+		})
+			.then(async (response) => {
+				let src = URL.createObjectURL(await response.blob()); 
+				image = src;
+
+				await Storage.set({key: 'profilePic', value: src});
+			})
+			.catch((customUser.picture = null));
+	};
+
+	getUser();
 </script>
 
 <main>
-	{#if route !== "/login"}
+	{#if !["/login", "/settings"].includes(route)}
 		<div class="navbar">
-			<div class="left flex">
-				<Switch bind:checked={screenReader} />
-				<span>Screen Reader</span>
-			</div>
+
+			{#if route === "/home"}
+				<div class="left flex">
+					<Switch bind:checked={screenReader} />
+				</div>
+			{:else}
+				<img on:click={() => push("/home")} class="logo flex" src="assets/logo.svg" alt="Optio.me Logo"/>
+			{/if}	
 
 			{#if route !== "/home"}
 				<div class="bar">
@@ -53,9 +159,9 @@
 			{/if}		
 
 			<div class="right flex">
-				<div class="profile flex">
-					<span>Bruno Silva</span>
-					<img src="assets/user.png" alt="User" />
+				<div on:click={() => push("#/settings")} class="profile flex">
+					<span class="noselect">{user ? user.displayName: "John Doe"}</span>
+					<img id="profilePic" src={image ? image: "assets/user.png"} alt="User" />
 				</div>
 
 				<span class="settings material-icons"></span>
@@ -63,22 +169,34 @@
 		</div>
 
 	{/if}
-	
+
 	<div class="content">
 		<Router
+			on:conditionsFailed={conditionsFailed}
 			on:routeLoading={routeLoading}
 			routes={{
 				"/home": wrap({
 					component: Home,
+					conditions: [protectAuth]
 				}),
 				"/search": wrap({
-					component: Search
+					component: Search,
+					conditions: [protectAuth]
 				}),
 				"/article/:id": wrap({
-					component: Article
+					component: Article,
+					conditions: [protectAuth]
+				}),
+				"/settings": wrap({
+					component: Settings,
+					conditions: [protectAuth]
 				}),
 				"/login": wrap({
-					component: Login
+					component: Login,
+					conditions: [protectLogin]
+				}),
+				"/error/:type": wrap({
+					component: ErrorPage
 				})
 			}}
 		/>
@@ -107,12 +225,8 @@
 		margin-top: 5px;
 	}
 
-	.left span {
-		margin-left: 20px;
-	}
-
 	.right img {
-		margin-left: 20px;
+		margin-left: 16px;
 		width: 45px;
 	}
 
@@ -130,6 +244,22 @@
 
 	.settings {
 		display: none;
+	}
+
+	#profilePic {
+		border-radius: 50%;
+		width: 35px;
+	}
+
+	.profile {
+		background-color: #F6F6F6;
+		padding: 3px 10px 3px 20px;
+		border-radius: 30px;
+		border: 2px solid #BABABA;
+	}
+
+	.logo {
+		width: 180px;
 	}
 
 	@media only screen and (max-width: 500px) {

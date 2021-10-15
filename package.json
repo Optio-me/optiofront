@@ -35,8 +35,11 @@
     "@rollup/plugin-replace": "^3.0.0",
     "graphql": "^15.6.1",
     "qs": "^6.10.1",
+    "query-string": "^7.0.1",
     "sirv-cli": "^1.0.0",
     "svelte-apollo": "^0.4.0",
-    "svelte-spa-router": "^3.2.0"
+    "svelte-markdown": "^0.1.12",
+    "svelte-spa-router": "^3.2.0",
+    "svelte-video-player": "^1.2.5"
   }
 }
